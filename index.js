@@ -12,8 +12,20 @@ app.get("/data", (req, res) => {
   res.json(data);
 });
 
-app.get("/data/:roomCode", (req, res) => {
-  res.json(data[req.params.roomCode]);
+app.get("/data/:roomCode", async (req, res) => {
+  const roomData = data[req.params.roomCode];
+  if (!roomData) {
+    return res.status(404).json(null);
+  }
+  if (roomData.archived === true) {
+    const x = await fs.promises.readFile(
+      `${process.cwd()}/.data/${req.params.roomCode}_${roomData.lastUpdate}.json`,
+      "utf8"
+    );
+    res.json({ ...roomData, state: JSON.parse(x) });
+  } else {
+    res.json(data[req.params.roomCode]);
+  }
 });
 
 app.get("/room/:roomCode", (req, res) => {
@@ -64,8 +76,9 @@ const ERASE_TIME = 1000 * 60 * 60 * 24 * 2;
 const ARCHIVER_FREQUENCY = 1000 * 60 * 1;
 
 const archiver = () => {
-  const archiveTime = Date.now() - ARCHIVE_TIME;
-  const eraseTime = Date.now() - ERASE_TIME;
+  const now = Date.now();
+  const archiveTime = now - ARCHIVE_TIME;
+  const eraseTime = now - ERASE_TIME;
 
   let eraseCount = 0;
   let archiveCount = 0;
@@ -80,9 +93,9 @@ const archiver = () => {
       }
     } else {
       if (lastUpdate < archiveTime) {
-        const fileName = `${process.cwd()}/.data/${roomCode}_${lastUpdate}.json`;
+        const fileName = `${process.cwd()}/.data/${roomCode}_${now}.json`;
         fs.writeFile(fileName, JSON.stringify(state), "utf8", () => {});
-        data[roomCode] = { archived: true, lastUpdate: Date.now() };
+        data[roomCode] = { archived: true, lastUpdate: now };
         archiveCount += 1;
       }
     }
