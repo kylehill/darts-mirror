@@ -38,15 +38,52 @@ io.on("connection", (socket) => {
     socket.send("ok");
   });
 
+  socket.on("room_status", (roomCode) => {
+    roomCode = roomCode.toString().toUpperCase();
+
+    if (data[roomCode] === undefined) {
+      socket.emit("room_status", { roomCode, status: "available" });
+      return;
+    }
+    if (data[roomCode].archived) {
+      socket.emit("room_status", { roomCode, status: "archived" });
+      return;
+    }
+
+    socket.emit("room_status", { roomCode, status: "active" });
+  });
+
   socket.on("join", (roomCode) => {
+    roomCode = roomCode.toString().toUpperCase();
+
     socket.join(roomCode);
-    socket.emit("state", data[roomCode] && data[roomCode].state);
+
+    if (data[roomCode] && data[roomCode].state) {
+      socket.emit("state", {
+        roomCode,
+        state: data[roomCode].state,
+      });
+    } else {
+      socket.emit("state", {
+        roomCode,
+        state: null,
+      });
+    }
+  });
+
+  socket.on("leave", (roomCode) => {
+    roomCode = roomCode.toString().toUpperCase();
+
+    socket.leave(roomCode);
   });
 
   socket.on("state", ({ roomCode, state }) => {
+    roomCode = roomCode.toString().toUpperCase();
+
     if (data[roomCode] === undefined || data[roomCode].archived) {
       data[roomCode] = {
         state,
+        roomCode,
         tx: state.tx,
         lastUpdate: Date.now(),
         archived: false,
@@ -55,6 +92,7 @@ io.on("connection", (socket) => {
       if (data[roomCode].tx < state.tx) {
         data[roomCode] = {
           state,
+          roomCode,
           tx: state.tx,
           lastUpdate: Date.now(),
           archived: false,
@@ -62,7 +100,10 @@ io.on("connection", (socket) => {
       }
     }
 
-    socket.to(roomCode).emit("state", data[roomCode].state);
+    socket.to(roomCode).emit("state", {
+      roomCode,
+      state: data[roomCode].state,
+    });
     socket.to("firehose").emit("firehose", { roomCode, state: data[roomCode].state });
   });
 });
