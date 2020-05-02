@@ -6,7 +6,7 @@ const fs = require("fs");
 
 const data = {};
 
-app.use(express.static("public"));
+//app.use(express.static("public"));
 
 app.get("/data", (req, res) => {
   res.json(data);
