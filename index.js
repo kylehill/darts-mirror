@@ -112,7 +112,7 @@ http.listen(process.env.PORT || 4000, () => {
   console.log("server starting...");
 });
 
-const ARCHIVE_TIME = 1000 * 60 * 20;
+const ARCHIVE_TIME = 1000 * 60 * 60 * 6;
 const ERASE_TIME = 1000 * 60 * 60 * 24 * 2;
 const ARCHIVER_FREQUENCY = 1000 * 60 * 1;
 
